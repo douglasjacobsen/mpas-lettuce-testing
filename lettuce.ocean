@@ -1,0 +1,23 @@
+[lettuce_actions]
+# To turn these on use any of: "1", "yes", "true", and "on"
+# To turn these off simply comment out the line OR use any of: "0", "no", "false", and "off"
+# Values here are case insensitive but there should be no whitespace after the =
+clone=YES
+build=YES
+run=YES
+
+[building]
+compiler = gfortran
+core = ocean
+flags = MODE=forward
+
+[trusted_repo]
+url = git@github.com:MPAS-Dev/MPAS.git
+branch = ocean/develop
+test_cases_url = http://oceans11.lanl.gov/mpas_data/mpas_ocean/test_cases/release_3.0
+
+[testing_repo]
+url = git@github.com:matthewhoffman/MPAS.git
+branch = framework/c++_makefile_support
+test_cases_url = http://oceans11.lanl.gov/mpas_data/mpas_ocean/test_cases/release_3.0
+
