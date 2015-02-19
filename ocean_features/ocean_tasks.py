@@ -10,7 +10,6 @@ from lettuce import *
 from collections import defaultdict
 import xml.etree.ElementTree as ET
 
-import mpas_tasks
 
 @step('A "([^"]*)" "([^"]*)" "([^"]*)" "([^"]*)" test')#{{{
 def get_test_case(step, size, levs, test, time_stepper):

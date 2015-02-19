@@ -2,6 +2,7 @@ from lettuce import *
 import subprocess
 import ConfigParser
 import os
+import mpas_tasks
 
 @before.all#{{{
 def check_environment():
@@ -141,7 +142,7 @@ def setup_config(feature):
 					os.chdir("%s/%s"%(world.base_dir, testtype))
 					# make a temporary remote to get the most current version of the specified repo
 					remotes = subprocess.check_output(['git', 'remote'], stderr=world.dev_null).strip()
-					print "Remotes are: "+remotes
+					#print "Remotes are: "+remotes
 					if 'statuscheck' in remotes:
 						# need to delete this remote first
 						subprocess.check_call(['git', 'remote', 'rm', 'statuscheck'], stdout=world.dev_null, stderr=world.dev_null)
