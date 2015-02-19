@@ -17,7 +17,7 @@ branch = ocean/develop
 test_cases_url = http://oceans11.lanl.gov/mpas_data/mpas_ocean/test_cases/release_3.0
 
 [testing_repo]
-url = git@github.com:matthewhoffman/MPAS.git
-branch = framework/c++_makefile_support
+url = git@github.com:MPAS-Dev/MPAS.git
+branch = ocean/develop
 test_cases_url = http://oceans11.lanl.gov/mpas_data/mpas_ocean/test_cases/release_3.0
 
