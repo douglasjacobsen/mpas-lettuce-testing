@@ -134,7 +134,12 @@ def setup_config(feature):
 					command = "git"
 					arg1 = "checkout"
 					arg2 = "origin/%s"%world.configParser.get(testtype+"_repo", "branch")
-					subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # this version checks out a detached head
+					try:
+						subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # this version checks out a detached head
+					except:
+						# Try checking out a hash, if that's what they specified
+						subprocess.check_call([command, arg1, world.configParser.get(testtype+"_repo", "branch")], stdout=world.dev_null, stderr=world.dev_null)
+
 					os.chdir(world.base_dir) # return to base_dir in case not already there
 
 				# ---- Didn't need to make a new clone -----
