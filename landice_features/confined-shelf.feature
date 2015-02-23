@@ -13,7 +13,7 @@ Feature: Reproduce Confined Shelf benchmark solution
 		When I perform a 1 processor MPAS "landice_model_testing" run
 		When I perform a 4 processor MPAS "landice_model_testing" run
 		When I compute the RMS of "normalVelocity"
-		Then I see "normalVelocity" RMS of 0
+		Then I see "normalVelocity" RMS smaller than "1.0e-12"
 
 	Scenario: 1 vs 1 procs with confined-shelf first-order against trusted
 		Given A "confined-shelf" test for "testing"
