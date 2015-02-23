@@ -9,7 +9,7 @@ Feature: Reproduce Confined Shelf benchmark solution
 		Then I see a "confined-shelf" maximum speed near "1285" m/yr
 
 	Scenario: 1 vs 4 procs with confined-shelf first-order
-		Given A "circular-shelf" test for "testing"
+		Given A "confined-shelf" test for "testing"
 		When I perform a 1 processor MPAS "landice_model_testing" run
 		When I perform a 4 processor MPAS "landice_model_testing" run
 		When I compute the RMS of "normalVelocity"
