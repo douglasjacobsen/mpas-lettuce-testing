@@ -131,32 +131,9 @@ class Namelist():
 
     def _parse_value(self, variable_value):
         """
-        Tries to parse a single value, raises an exception if no single value is matched
+        Return all values as strings!  (MJH, 2/25/15)
         """
-        try:
-            parsed_value = int(variable_value)
-        except ValueError:
-            try:
-                parsed_value = float(variable_value)
-            except ValueError:
-                # check for complex number
-                complex_values = re.findall(self._complex_re, variable_value)
-                if len(complex_values) == 1:
-                    a, b = complex_values[0]
-                    parsed_value = complex(float(a),float(b))
-                elif variable_value in ['.true.', 'T']:
-                    # check for a boolean
-                    parsed_value = True
-                elif variable_value in ['.false.', 'F']:
-                    parsed_value = False
-                else:
-                    # see if we have an escaped string
-                    if variable_value.startswith("'") and variable_value.endswith("'") and variable_value.count("'") == 2:
-                        parsed_value = variable_value[1:-1]
-                    else:
-                        raise NoSingleValueFoundException(variable_value)
-
-        return parsed_value
+        return variable_value
 
     def _check_lists(self):
         for group in self.groups.values():
@@ -202,7 +179,7 @@ class Namelist():
         elif isinstance(value, float):
             return "%f" % value
         elif isinstance(value, str):
-            return "'%s'" % value
+            return "%s" % value  # MJH 2/5/2015: Removed single quotes from strings
         elif isinstance(value, complex):
             return "(%s,%s)" % (self._format_value(value.real), self._format_value(value.imag))
         else:
