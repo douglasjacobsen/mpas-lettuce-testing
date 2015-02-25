@@ -11,6 +11,12 @@ from lettuce import *
 from collections import defaultdict
 import xml.etree.ElementTree as ET
 
+from namelist_python.namelist import read_namelist_file
+try:
+	from collections import OrderedDict
+except ImportError:
+	from utils import OrderedDict
+
 @world.absorb
 def seconds_to_timestamp(seconds):#{{{
 	days = 0
@@ -309,4 +315,19 @@ def clean_test(step):
 		arg1 = "-rf"
 		arg2 = "%s/testing_tests/%s"%(world.base_dir,world.test)
 		subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
+#}}}
+
+@step('I set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
+def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSet):
+
+	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
+	namelist = read_namelist_file(nl_file)
+	try:
+		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
+	except:  # If the group doesn't already exist, we'd get an error.
+		namelist.groups[groupOwningOption] = OrderedDict()
+		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
+
+	with open(nl_file, 'w') as f:
+		f.write(namelist.dump())
 #}}}
