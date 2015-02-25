@@ -35,13 +35,18 @@ def get_test_case(step, test, testtype):
 
 	if world.clone == True:
 		# get test tarball if we don't already have it
-		if not os.path.exists(world.base_dir + '/' + tc_filename):
+		if not os.path.exists(testpath + '/' + tc_filename):
+			#print "Getting test case file.\n"
 			try:
+				print testpath + '/' + tc_filename +"\n"
 				subprocess.check_call(["wget", "--trust-server-names", test_url + "/" + tc_filename], stdout=world.dev_null, stderr=world.dev_null)
 				# "--trust-server-names"  if the server redirects to an error page, this prevents that page from being named the test archive name - which is confusing!
 			except:
 				print "Error: unable to get test case archive: " + test_url + "/" + tc_filename + "\n"
 				raise
+		else:
+			#print "Already have test case file.\n"
+			pass
 	else:
 		print "       Skipping retrieval of test case archive for " + testtype + " test because 'clone=off' in lettuce.landice.\n"
 
