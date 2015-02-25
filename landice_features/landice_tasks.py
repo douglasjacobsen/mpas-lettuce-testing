@@ -10,7 +10,10 @@ def get_test_case(step, test, testtype):
 
 	world.test = "%s"%(test)
 	world.num_runs = 0
+	world.namelist = "namelist.landice"
+	world.streams = "streams.landice"
 
+	# -- Figure out test case archive name
 	if testtype == 'trusted':
 		test_url = world.trusted_url
 	elif testtype == 'testing':
@@ -24,7 +27,7 @@ def get_test_case(step, test, testtype):
 		print 'Error: Unable to determine test case filename!'
 		assert testcase_filename_error
 
-	# make trusted/testing_tests directory it it doesn't already exist and cd to it.
+	# -- make trusted/testing_tests directory it it doesn't already exist and cd to it.
 	testpath = world.base_dir + '/' + testtype + '_tests'
 	try:
 		os.makedirs(testpath)
@@ -33,8 +36,8 @@ def get_test_case(step, test, testtype):
 			raise
 	os.chdir(testpath)
 
+	# -- get test tarball if we don't already have it
 	if world.clone == True:
-		# get test tarball if we don't already have it
 		if not os.path.exists(testpath + '/' + tc_filename):
 			#print "Getting test case file.\n"
 			try:
@@ -50,7 +53,7 @@ def get_test_case(step, test, testtype):
 	else:
 		print "       Skipping retrieval of test case archive for " + testtype + " test because 'clone=off' in lettuce.landice.\n"
 
-	# delete test dir if it already exists.  Then untar it
+	# -- Delete test dir if it already exists.  Then untar it
 	thistestpath = world.base_dir + '/' + testtype + '_tests/' + world.test
 	if os.path.exists(thistestpath):
 		shutil.rmtree(thistestpath)
