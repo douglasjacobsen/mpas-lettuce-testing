@@ -298,8 +298,8 @@ def check_rms_values(step, variable):
 def check_rms_min_value(step, variable, threshold):
 	if ( world.run ):
 		if world.num_runs == 2:
-			#print 'RMS=',world.rms_values[variable][0], '\n'
-			assert world.rms_values[variable][0] < threshold, '%s RMS failed with value %s, which is larger than threshold of %s'%(variable, world.rms_values[variable][0], threshold)
+			print 'RMS =',world.rms_values[variable][0], '\n'
+			assert world.rms_values[variable][0] < float(threshold), '%s RMS failed with value %s, which is larger than threshold of %s'%(variable, world.rms_values[variable][0], threshold)
 		else:
 			print 'Less than two runs. Skipping RMS check.'
 #}}}
