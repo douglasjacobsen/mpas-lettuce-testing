@@ -25,6 +25,13 @@ def check_environment():
 
 @before.each_feature#{{{
 def setup_config(feature):
+	world.base_dir = os.getcwd()
+
+	# Setup feature directory
+	world.feature_path = "%s/tests/%s"%(world.base_dir, feature.name.replace(" ", "_"))
+	if not os.path.exists("%s"%(world.feature_path)):
+		subprocess.check_call(['mkdir', '-p', "%s"%(world.feature_path)], stdout=world.dev_null, stderr=world.dev_null)
+
 	world.feature_count += 1
 	if world.feature_count == 1:  # the clone/checkout/build actions should only happen before the first feature
 
@@ -88,7 +95,6 @@ def setup_config(feature):
 		world.testing_url = world.configParser.get("testing_repo", "test_cases_url")
 		world.trusted_url = world.configParser.get("trusted_repo", "test_cases_url")
 
-		world.base_dir = os.getcwd()
 		if ( world.core == "ocean" ):
 			world.executable = "ocean_forward_model"
 		elif ( world.core == "landice" ):
@@ -222,6 +228,17 @@ def setup_config(feature):
 def setup_step(step):
 	# Change directory to base_dir
 	os.chdir(world.base_dir)
+#}}}
+
+@before.each_scenario#{{{
+def setup_scenario(scenario):
+	world.scenario_path = "%s/%s"%(world.feature_path, scenario.name.replace(" ", "_"))
+	
+	if not os.path.exists("%s"%(world.scenario_path)):
+		subprocess.check_call(['mkdir', '-p', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
+	else:
+		subprocess.check_call(['rm', '-rf', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
+		subprocess.check_call(['mkdir', '-p', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
 #}}}
 
 @after.each_scenario#{{{
