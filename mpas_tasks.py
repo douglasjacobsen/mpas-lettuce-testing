@@ -331,3 +331,85 @@ def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSe
 	with open(nl_file, 'w') as f:
 		f.write(namelist.dump())
 #}}}
+
+@step('I remove all streams from the "([^"]*)" stream file')#{{{
+def flush_streams(step, testtype):
+	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		root.remove(stream)
+
+	tree.write(st_file)
+
+	del tree
+	del root
+#}}}
+
+@step('I create a "([^"]*)" stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def create_stream(step, streamtype, streamname, testtype):
+	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			print " ERROR: Stream %s already exists. Returning...\n"%(streamname)
+			return
+
+	stream = ET.SubElement(root, 'stream')
+	stream.set('name', streamname)
+	stream.set('type', streamtype)
+	stream.set('filename_template', 'none')
+	stream.set('filename_interval', 'none')
+	stream.set('output_interval', 'none')
+	stream.set('input_interval', 'none')
+
+	tree.write(st_file)
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, testtype):
+	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the immutable_stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, testtype):
+	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('immutable_stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I add a "([^"]*)" named "([^"]*)" to the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def add_stream_member(step, elementtype, elementname, streamname, testtype):
+	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			member = ET.SubElement(stream, elementtype)
+			member.set('name', elementname)
+			tree.write(st_file)
+			return
+#}}}
