@@ -32,6 +32,11 @@ def setup_config(feature):
 	if not os.path.exists("%s"%(world.feature_path)):
 		subprocess.check_call(['mkdir', '-p', "%s"%(world.feature_path)], stdout=world.dev_null, stderr=world.dev_null)
 
+	# Setup builds directory
+	world.builds_path = "%s/builds"%(world.base_dir)
+	if not os.path.exists("%s"%(world.builds_path)):
+		subprocess.check_call(["mkdir", "-p", "%s"%(world.builds_path)], stdout=world.dev_null, stderr=world.dev_null)
+
 	world.feature_count += 1
 	if world.feature_count == 1:  # the clone/checkout/build actions should only happen before the first feature
 
@@ -114,19 +119,19 @@ def setup_config(feature):
 				# Making a local branch failed if the branch name already existed (i.e., with 'master' which is automatically created during the clone)
 
 				try:
-					os.chdir("%s/%s"%(world.base_dir, testtype))
+					os.chdir("%s/%s"%(world.builds_path, testtype))
 					HEAD_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'], stderr=world.dev_null).strip()
 					need_to_clone = False # if the dir exists AND we got a hash, then this directory is a git repo
 				except:
 					need_to_clone = True  # if we fail to enter the dir or fail to get a hash then call this directory bad
 
-				os.chdir(world.base_dir) # return to base_dir in case not already there
+				os.chdir(world.builds_path) # return to builds_path in case not already there
 
 				if need_to_clone:
 					need_to_build = True # set this for later - we definitely need to build if we don't even have a clone...
 					# delete dir if it exists
-					if os.path.exists("%s/%s"%(world.base_dir, testtype)):
-						shutil.rmtree("%s/%s"%(world.base_dir, testtype))
+					if os.path.exists("%s/%s"%(world.builds_path, testtype)):
+						shutil.rmtree("%s/%s"%(world.builds_path, testtype))
 
 					# Clone repo specified
 					print "Cloning " + testtype + " repository."
@@ -135,7 +140,7 @@ def setup_config(feature):
 					arg2 = "%s"%world.configParser.get(testtype+"_repo", "url")
 					arg3 = testtype
 					subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)
-					os.chdir("%s/%s"%(world.base_dir, testtype))
+					os.chdir("%s/%s"%(world.builds_path, testtype))
 					print "Checking out " + testtype + " branch."
 					command = "git"
 					arg1 = "checkout"
@@ -146,11 +151,11 @@ def setup_config(feature):
 						# Try checking out a hash, if that's what they specified
 						subprocess.check_call([command, arg1, world.configParser.get(testtype+"_repo", "branch")], stdout=world.dev_null, stderr=world.dev_null)
 
-					os.chdir(world.base_dir) # return to base_dir in case not already there
+					os.chdir(world.builds_path) # return to builds_path in case not already there
 
 				# ---- Didn't need to make a new clone -----
 				else:  # We don't need to clone, but that doesn't mean the branch or the executable are up to date
-					os.chdir("%s/%s"%(world.base_dir, testtype))
+					os.chdir("%s/%s"%(world.builds_path, testtype))
 					# make a temporary remote to get the most current version of the specified repo
 					remotes = subprocess.check_output(['git', 'remote'], stderr=world.dev_null).strip()
 					#print "Remotes are: "+remotes
@@ -199,13 +204,13 @@ def setup_config(feature):
 						print "   -- Running make clean CORE=%s"%world.configParser.get("building", "core")
 						subprocess.check_call(['make', 'clean', "CORE=%s"%world.configParser.get("building", "core")], stdout=world.dev_null, stderr=world.dev_null)
 
-						os.chdir(world.base_dir) # return to base_dir in case not already there
+						os.chdir(world.builds_path) # return to builds_path in case not already there
 
 				if ( world.build == True ):
 					# Build executable
-					if need_to_build or not os.path.exists("%s/%s/%s"%(world.base_dir, testtype, world.executable)):
+					if need_to_build or not os.path.exists("%s/%s/%s"%(world.builds_path, testtype, world.executable)):
 						print "Building " + testtype + " executable."
-						os.chdir("%s/%s"%(world.base_dir, testtype))
+						os.chdir("%s/%s"%(world.builds_path, testtype))
 						args = ["make",]
 						args.append("%s"%world.compiler)
 						args.append("CORE=%s"%world.core)
@@ -219,7 +224,7 @@ def setup_config(feature):
 						elif testtype == 'testing':
 							world.testing_executable = "%s/%s"%(os.getcwd(), world.executable)
 
-						os.chdir("%s"%(world.base_dir))
+						os.chdir("%s"%(world.builds_path))
 
 		print '----------------------------'
 #}}}
