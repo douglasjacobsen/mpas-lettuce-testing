@@ -24,7 +24,7 @@ def seconds_to_timestamp(seconds):#{{{
 	minutes = 0
 
 	if seconds >= 24*3600:
-		days = int(seconds/(24*3600))
+		days = int( int(seconds)/(24*3600))
 		seconds = seconds - int(days * 24 * 3600)
 
 	if seconds >= 3600:
@@ -83,14 +83,11 @@ def timestamp_to_seconds(timestamp):#{{{
 	return seconds
 #}}}
 
-@step('I perform a (\d+) processor MPAS "([^"]*)" run')#{{{
-def run_mpas(step, procs, executable):
+@step('I perform a (\d+) processor MPAS "([^"]*)" run in "([^"]*)"')#{{{
+def run_mpas(step, procs, executable, run_name):
 
 	if ( world.run == True ):
-		if executable.find("testing") >= 0:
-			rundir = "%s/testing_tests/%s"%(world.base_dir, world.test)
-		elif executable.find("trusted") >= 0:
-			rundir = "%s/trusted_tests/%s"%(world.base_dir, world.test)
+		rundir = "%s/%s"%(world.scenario_path, run_name)
 
 		os.chdir(rundir)
 		command = "mpirun"
@@ -130,20 +127,17 @@ def run_mpas(step, procs, executable):
 		os.chdir(world.base_dir)
 #}}}
 
-@step('I perform a (\d+) processor MPAS  "([^"]*)" run with restart')#{{{
-def run_mpas_with_restart(step, procs, executable):
+@step('I perform a (\d+) processor MPAS "([^"]*)" run with restart in "([^"]*)"')#{{{
+def run_mpas_with_restart(step, procs, executable, run_name):
 
 	if ( world.run == True ):
-		if executable.find("testing") >= 0:
-			rundir = "%s/testing_tests/%s"%(world.base_dir, world.test)
-		elif executable.find("trusted") >= 0:
-			rundir = "%s/trusted_tests/%s"%(world.base_dir, world.test)
+		rundir = "%s/%s"%(world.scenario_path, run_name)
 
 		os.chdir(rundir)
 
 		#{{{ Setup initial namelist
-		duration = world.seconds_to_timestamp(world.dt)
-		final_time = world.seconds_to_timestamp(world.dt + 24*3600)
+		duration = world.seconds_to_timestamp(world.dt_sec)
+		final_time = world.seconds_to_timestamp(world.dt_sec + 24*3600)
 
 		namelistfile = open(world.namelist, 'r+')
 		lines = namelistfile.readlines()
@@ -151,9 +145,7 @@ def run_mpas_with_restart(step, procs, executable):
 		namelistfile.truncate()
 
 		for line in lines:
-			if line.find('config_start_time') >= 0:
-				new_line = "	config_start_time = 'file'\n"
-			elif line.find('config_run_duration') >= 0:
+			if line.find('config_run_duration') >= 0:
 				new_line = "	config_run_duration = '%s'\n"%duration
 			else:
 				new_line = line
@@ -209,6 +201,8 @@ def run_mpas_with_restart(step, procs, executable):
 		for line in lines:
 			if line.find('config_do_restart') >= 0:
 				new_line = "	config_do_restart = .true.\n"
+			elif line.find('config_start_time') >= 0:
+				new_line = "	config_start_time = 'file'\n"
 			else:
 				new_line = line
 
