@@ -18,12 +18,9 @@ def get_test_case(step, size, levs, test, time_stepper, testtype, run_name):
 	world.streams = "streams.ocean_forward"
 
 	if not os.path.exists("%s/tests/%s_inputs"%(world.base_dir, testtype)):
-		command = "mkdir"
-		arg1 = "-p"
-		arg2 = "%s/tests/%s_inputs"%(world.base_dir, testtype)
-		subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
+		os.makedirs("%s/tests/%s_inputs"%(world.base_dir, testtype))
 
-	os.chdir("%s/tests/%s_inputs"%(world.base_dir, testtype))
+ 	os.chdir("%s/tests/%s_inputs"%(world.base_dir, testtype))
 
 	if world.clone:
 		if not os.path.exists("%s/tests/%s_inputs/%s.tgz"%(world.base_dir, testtype, world.test)):
@@ -33,7 +30,7 @@ def get_test_case(step, size, levs, test, time_stepper, testtype, run_name):
 
 	if os.path.exists("%s/%s"%(world.scenario_path, run_name)):
 		subprocess.check_call(['rm', '-rf', "%s/%s"%(world.scenario_path, run_name)], stdout=world.dev_null, stderr=world.dev_null)
-	
+
 	os.chdir("%s"%(world.scenario_path))
 
 	subprocess.check_call(['tar', 'xzf', '%s/tests/%s_inputs/%s.tgz'%(world.base_dir, testtype, world.test)], stdout=world.dev_null, stderr=world.dev_null)

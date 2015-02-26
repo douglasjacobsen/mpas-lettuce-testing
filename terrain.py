@@ -30,12 +30,12 @@ def setup_config(feature):
 	# Setup feature directory
 	world.feature_path = "%s/tests/%s"%(world.base_dir, feature.name.replace(" ", "_"))
 	if not os.path.exists("%s"%(world.feature_path)):
-		subprocess.check_call(['mkdir', '-p', "%s"%(world.feature_path)], stdout=world.dev_null, stderr=world.dev_null)
+		os.makedirs("%s"%(world.feature_path))
 
 	# Setup builds directory
 	world.builds_path = "%s/builds"%(world.base_dir)
 	if not os.path.exists("%s"%(world.builds_path)):
-		subprocess.check_call(["mkdir", "-p", "%s"%(world.builds_path)], stdout=world.dev_null, stderr=world.dev_null)
+		os.makedirs("%s"%(world.builds_path))
 
 	world.feature_count += 1
 	if world.feature_count == 1:  # the clone/checkout/build actions should only happen before the first feature
@@ -240,10 +240,10 @@ def setup_scenario(scenario):
 	world.scenario_path = "%s/%s"%(world.feature_path, scenario.name.replace(" ", "_"))
 	
 	if not os.path.exists("%s"%(world.scenario_path)):
-		subprocess.check_call(['mkdir', '-p', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
+		os.makedirs("%s"%(world.scenario_path))
 	else:
 		subprocess.check_call(['rm', '-rf', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
-		subprocess.check_call(['mkdir', '-p', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
+		os.makedirs("%s"%(world.scenario_path))
 #}}}
 
 @after.each_scenario#{{{
