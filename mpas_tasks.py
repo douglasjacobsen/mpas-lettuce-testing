@@ -96,7 +96,7 @@ def run_mpas(step, procs, executable):
 		command = "mpirun"
 		arg1 = "-n"
 		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		arg3 = "./%s"%executable
 		try:
 			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
@@ -194,7 +194,7 @@ def run_mpas_with_restart(step, procs, executable):
 		command = "mpirun"
 		arg1 = "-n"
 		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		arg3 = "./%s"%executable
 		try:
 			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
@@ -221,7 +221,7 @@ def run_mpas_with_restart(step, procs, executable):
 		command = "mpirun"
 		arg1 = "-n"
 		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		arg3 = "./%s"%executable
 		try:
 			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)
 		except:
