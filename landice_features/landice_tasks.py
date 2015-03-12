@@ -100,12 +100,12 @@ def compute_rms(step):
 
 
 # ==============================================================================
-@step('I see Halfar thickness RMS of <10m')
-def check_rms_values(step):
+@step('I see Halfar thickness RMS of <"([^"]*)"m')
+def check_rms_values(step, eps):
 	if world.halfarRMS == []:
 		assert False, 'Calculation of Halfar RMS failed.'
 	else:
-		assert world.halfarRMS < 10.0, 'Halfar RMS of %s is greater than 10.0 m'%world.halfarRMS
+		assert world.halfarRMS < eps, 'Halfar RMS of %s is greater than %s m'%(world.halfarRMS,eps)
 
 
 # ==============================================================================
