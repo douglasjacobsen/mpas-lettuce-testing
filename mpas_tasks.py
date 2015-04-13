@@ -166,6 +166,7 @@ def run_mpas_with_restart(step, procs, executable):
 			else:
 				new_line = line
 			namelistfile.write(new_line)
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
 
@@ -192,6 +193,7 @@ def run_mpas_with_restart(step, procs, executable):
 			else:
 				new_line = line
 			namelistfile.write(new_line)
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
 
