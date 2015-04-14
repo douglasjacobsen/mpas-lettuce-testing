@@ -306,6 +306,7 @@ def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSe
 
 	with open(nl_file, 'w') as f:
 		f.write(namelist.dump())
+                f.write('\n')
 #}}}
 
 @step('I remove all streams from the "([^"]*)" stream file')#{{{
