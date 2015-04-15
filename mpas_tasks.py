@@ -13,9 +13,9 @@ import xml.etree.ElementTree as ET
 
 from namelist_python.namelist import read_namelist_file
 try:
-	from collections import OrderedDict
+	from collections import defaultdict
 except ImportError:
-	from utils import OrderedDict
+	from utils import defaultdict
 
 @world.absorb
 def seconds_to_timestamp(seconds):#{{{
@@ -83,6 +83,45 @@ def timestamp_to_seconds(timestamp):#{{{
 	return seconds
 #}}}
 
+@world.absorb
+def ingest_namelist(filename):#{{{
+	world.namelist_ingested = True
+	world.namelist_dict = defaultdict(lambda : defaultdict(list))
+	namelistfile = open(filename, 'r+')
+	lines = namelistfile.readlines()
+
+	record_name = 'NONE!!!'
+
+	for line in lines:
+		if line.find('&') >= 0:
+			record_name = line.strip().strip('&').strip('\n')
+			world.namelist_dict[record_name] = defaultdict(list)
+		elif line.find('=') >= 0:
+			opt, val = line.strip().strip('\n').split('=')
+			if record_name != "NONE!!!":
+				world.namelist_dict[record_name][opt].append(val)
+#}}}
+
+@world.absorb
+def write_namelist(filename):#{{{
+	if world.namelist_ingested :
+		out_namelist = open(filename, 'w+')
+		for record, opts in world.namelist_dict.items():
+			out_namelist.write('&%s\n'%(record))
+
+			for opt, val in opts.items():
+				out_namelist.write('\t%s = %s\n'%(opt.strip(), val[0].strip()))
+
+			out_namelist.write('/\n\n')
+		out_namelist.close()
+#}}}
+
+@world.absorb
+def clear_namelist():#{{{
+	del world.namelist_dict
+	world.namelist_ingested = False
+#}}}
+
 @step('I perform a (\d+) processor MPAS "([^"]*)" run')#{{{
 def run_mpas(step, procs, executable):
 
@@ -97,8 +136,12 @@ def run_mpas(step, procs, executable):
 		arg1 = "-n"
 		arg2 = "%s"%procs
 		arg3 = "./%s"%executable
+		arg4 = "-n"
+		arg5 = "%s"%world.namelist
+		arg6 = "-s"
+		arg7 = "%s"%world.streams
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -172,7 +215,7 @@ def run_mpas_with_restart(step, procs, executable):
 
 		# Perform the cold start to get half way through the standard run
 		try:
-			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -199,7 +242,7 @@ def run_mpas_with_restart(step, procs, executable):
 
 		# Run the restarted run to get to the end of the standard run
 		try:
-			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -295,6 +338,23 @@ def clean_test(step):
 
 @step('I set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
 def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSet):
+	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
+	world.ingest_namelist(nl_file)
+	if world.namelist_dict.has_key(groupOwningOption):
+		if world.namelist_dict[groupOwningOption].has_key(optionToChange):
+			world.namelist_dict[groupOwningOption][optionToChange][0] = valueToSet
+		else:
+			world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+	else:
+		world.namelist_dict[groupOwningOption] = defaultdict(list)
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+
+	world.write_namelist(nl_file)
+	world.clear_namelist()
+#}}}
+
+@step('I do not set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
+def junk_namelist_old(step, testtype, groupOwningOption, optionToChange, valueToSet):
 
 	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
 	namelist = read_namelist_file(nl_file)

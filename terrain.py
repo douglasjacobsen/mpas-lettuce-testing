@@ -21,6 +21,7 @@ def check_environment():
 	world.dev_null = open(os.devnull, "w")
 	#world.dev_null = None # Turns on printing of messages from subprocess
 	world.feature_count = 0
+	world.namelist_ingested = False
 #}}}
 
 @before.each_feature#{{{
