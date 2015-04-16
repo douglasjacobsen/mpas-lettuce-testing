@@ -10,7 +10,7 @@ Feature: Variable resolution mesh solutions
 		When I set "testing" namelist group "time_management", option "config_stop_time" to "'0100-01-01_00:00:00'"
 		When I perform a 1 processor MPAS "landice_model_testing" run
 		When I compute the Halfar RMS
-		Then I see Halfar thickness RMS of <10m
+		Then I see Halfar thickness RMS of <"25"m
 
 	Scenario: 1 vs 4 procs with dome-varres shallow-ice bit reproducibility
 		Given A "dome-varres" test for "testing"

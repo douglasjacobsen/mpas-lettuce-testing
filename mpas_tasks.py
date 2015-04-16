@@ -13,9 +13,9 @@ import xml.etree.ElementTree as ET
 
 from namelist_python.namelist import read_namelist_file
 try:
-	from collections import OrderedDict
+	from collections import defaultdict
 except ImportError:
-	from utils import OrderedDict
+	from utils import defaultdict
 
 @world.absorb
 def seconds_to_timestamp(seconds):#{{{
@@ -83,9 +83,47 @@ def timestamp_to_seconds(timestamp):#{{{
 	return seconds
 #}}}
 
-@step('I perform a (\d+) processor MPAS "([^"]*)" run in "([^"]*)"')#{{{
-def run_mpas(step, procs, executable, run_name):
+@world.absorb
+def ingest_namelist(filename):#{{{
+	world.namelist_ingested = True
+	world.namelist_dict = defaultdict(lambda : defaultdict(list))
+	namelistfile = open(filename, 'r+')
+	lines = namelistfile.readlines()
 
+	record_name = 'NONE!!!'
+
+	for line in lines:
+		if line.find('&') >= 0:
+			record_name = line.strip().strip('&').strip('\n')
+			world.namelist_dict[record_name] = defaultdict(list)
+		elif line.find('=') >= 0:
+			opt, val = line.strip().strip('\n').split('=')
+			if record_name != "NONE!!!":
+				world.namelist_dict[record_name][opt].append(val)
+#}}}
+
+@world.absorb
+def write_namelist(filename):#{{{
+	if world.namelist_ingested :
+		out_namelist = open(filename, 'w+')
+		for record, opts in world.namelist_dict.items():
+			out_namelist.write('&%s\n'%(record))
+
+			for opt, val in opts.items():
+				out_namelist.write('\t%s = %s\n'%(opt.strip(), val[0].strip()))
+
+			out_namelist.write('/\n\n')
+		out_namelist.close()
+#}}}
+
+@world.absorb
+def clear_namelist():#{{{
+	del world.namelist_dict
+	world.namelist_ingested = False
+#}}}
+
+@step('I perform a (\d+) processor MPAS "([^"]*)" run in "([^"]*)"')#{{{
+def run_mpas_without_restart(step, procs, executable, run_name):
 	if ( world.run == True ):
 		rundir = "%s/%s"%(world.scenario_path, run_name)
 
@@ -93,9 +131,13 @@ def run_mpas(step, procs, executable, run_name):
 		command = "mpirun"
 		arg1 = "-n"
 		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		arg3 = "./%s"%executable
+		arg4 = "-n"
+		arg5 = "%s"%world.namelist
+		arg6 = "-s"
+		arg7 = "%s"%world.streams
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -129,111 +171,86 @@ def run_mpas(step, procs, executable, run_name):
 
 @step('I perform a (\d+) processor MPAS "([^"]*)" run with restart in "([^"]*)"')#{{{
 def run_mpas_with_restart(step, procs, executable, run_name):
-
 	if ( world.run == True ):
 		rundir = "%s/%s"%(world.scenario_path, run_name)
 
 		os.chdir(rundir)
 
-		#{{{ Setup initial namelist
-		duration = world.seconds_to_timestamp(world.dt_sec)
-		final_time = world.seconds_to_timestamp(world.dt_sec + 24*3600)
+		# Previous run should be setup to:
+		#  * be 2 time steps long
+		#  * have output interval set to the timestep length
+		#  * have restart interval set to the timestep length
 
+		# Now set up a run that does one time step, stops, then restarts for one more
+		# Setup the cold start for the first time step
 		namelistfile = open(world.namelist, 'r+')
 		lines = namelistfile.readlines()
-		namelistfile.seek(0)
-		namelistfile.truncate()
-
+		# first grab the config_dt as a string
 		for line in lines:
-			if line.find('config_run_duration') >= 0:
-				new_line = "	config_run_duration = '%s'\n"%duration
+			if line.find('config_dt') >= 0:
+				timestep_string = line.split("=")[1].strip().strip("'")
 			else:
 				new_line = line
-
 			namelistfile.write(new_line)
-
+		# now re-write the namelist file, updating run_duration to be 1 dt
+		namelistfile.seek(0)
+		namelistfile.truncate()
+		for line in lines:
+			if line.find('config_run_duration') >= 0:
+				new_line = "	config_run_duration = '%s'\n"%timestep_string
+			else:
+				new_line = line
+			namelistfile.write(new_line)
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
-			#}}}
 
-		#{{{ Setup initial streams file
-		tree = ET.parse(world.streams)
-		root = tree.getroot()
-
-		# Loop over immutable streams to find restart streams.
-		for stream in root.findall('immutable_stream'):
-			type = stream.get('type')
-
-			if ( type.find("output") != -1 ):
-				stream.set('output_interval', '01')
-
-		# Loop over mutable streams to find restart and output streams
-		for stream in root.findall('stream'):
-			type = stream.get('type')
-			name = stream.get('name')
-
-			if ( type.find("output") != -1 ):
-				stream.set('output_interval', '01')
-
-			if ( name.find("output") != -1 ):
-				stream.set('filename_template', 'output.nc')
-
-		tree.write(world.streams)
-		del tree
-		del root
-		#}}}
-
-		command = "mpirun"
-		arg1 = "-n"
-		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		# Perform the cold start to get half way through the standard run
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+		# No need to keep/copy output, just continue on below
 
+		# Set namelist file to perform restart from last restart file (which you should have set up to land at the end of the run)
 		namelistfile = open(world.namelist, 'r+')
 		lines = namelistfile.readlines()
 		namelistfile.seek(0)
 		namelistfile.truncate()
-
 		for line in lines:
 			if line.find('config_do_restart') >= 0:
 				new_line = "	config_do_restart = .true.\n"
 			elif line.find('config_start_time') >= 0:
 				new_line = "	config_start_time = 'file'\n"
+			elif line.find('config_run_duration') >= 0:
+				new_line = "	config_run_duration = '%s'\n"%timestep_string  # Already set above, but setting again for clarity
 			else:
 				new_line = line
-
 			namelistfile.write(new_line)
-
-		namelistfile.write("mv output.nc %sprocs.restarted.output.nc"%(procs))
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
 
-		command = "mpirun"
-		arg1 = "-n"
-		arg2 = "%s"%procs
-		arg3 = "%s"%executable
+		# Run the restarted run to get to the end of the standard run
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
-		command = "mv"
-		arg1 = "output.nc"
-		arg2 = "%sprocs.restarted.output.nc"%procs
+		# Keep a copy of the completed restart run
 		try:
-			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
+			restart_output_file = "%sprocs.restarted.output.nc"%procs
+			subprocess.check_call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
+		# Augment the world metadata with this run
 		if world.num_runs == 0:
 			world.num_runs = 1
-			world.run1 = "%s/%s"%(rundir,arg2)
+			world.run1 = "%s/%s"%(rundir,restart_output_file)
 			world.run1dir = rundir
 			try:
 				del world.rms_values
@@ -242,7 +259,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 				world.rms_values = defaultdict(list)
 		elif world.num_runs == 1:
 			world.num_runs = 2
-			world.run2 = "%s/%s"%(rundir,arg2)
+			world.run2 = "%s/%s"%(rundir,restart_output_file)
 			world.run2dir = rundir
 		os.chdir(world.base_dir)
 #}}}
@@ -313,6 +330,23 @@ def clean_test(step):
 
 @step('I set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
 def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSet):
+	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
+	world.ingest_namelist(nl_file)
+	if world.namelist_dict.has_key(groupOwningOption):
+		if world.namelist_dict[groupOwningOption].has_key(optionToChange):
+			world.namelist_dict[groupOwningOption][optionToChange][0] = valueToSet
+		else:
+			world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+	else:
+		world.namelist_dict[groupOwningOption] = defaultdict(list)
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+
+	world.write_namelist(nl_file)
+	world.clear_namelist()
+#}}}
+
+@step('I do not set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
+def junk_namelist_old(step, testtype, groupOwningOption, optionToChange, valueToSet):
 
 	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
 	namelist = read_namelist_file(nl_file)
@@ -324,6 +358,7 @@ def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSe
 
 	with open(nl_file, 'w') as f:
 		f.write(namelist.dump())
+                f.write('\n')
 #}}}
 
 @step('I remove all streams from the "([^"]*)" stream file')#{{{

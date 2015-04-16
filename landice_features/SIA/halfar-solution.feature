@@ -7,11 +7,11 @@ Feature: Reproduce Halfar analytic solution
 		Given A "dome" test for "testing"
 		When I perform a 1 processor MPAS "landice_model_testing" run
 		When I compute the Halfar RMS
-		Then I see Halfar thickness RMS of <10m
+		Then I see Halfar thickness RMS of <"10"m
 
 	Scenario: 4 procs with dome shallow-ice
 		Given A "dome" test for "testing"
 		When I perform a 4 processor MPAS "landice_model_testing" run
 		When I compute the Halfar RMS
-		Then I see Halfar thickness RMS of <10m
+		Then I see Halfar thickness RMS of <"10"m
 

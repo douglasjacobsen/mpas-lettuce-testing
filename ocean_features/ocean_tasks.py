@@ -1,4 +1,4 @@
-import sys, os, glob, shutil, numpy, math
+import sys, os, glob, shutil, numpy, math, stat
 import subprocess
 
 from netCDF4 import *
@@ -39,7 +39,20 @@ def get_test_case(step, size, levs, test, time_stepper, testtype, run_name):
 	os.chdir("%s/%s"%(world.scenario_path, run_name))
 	subprocess.check_call(['cp', '%s'%(world.namelist), '%s.default'%(world.namelist)], stdout=world.dev_null, stderr=world.dev_null)
 	subprocess.check_call(['cp', '%s'%(world.streams), '%s.default'%(world.streams)], stdout=world.dev_null, stderr=world.dev_null)
-	subprocess.check_call(['ln', '-s', "%s/%s/ocean_forward_model"%(world.builds_path, testtype), "ocean_forward_model_%s"%(testtype)], stdout=world.dev_null, stderr=world.dev_null)
+	os.chdir("%s/%s"%(world.scenario_path, run_name))
+	executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+	for filename in os.listdir('%s/%s'%(world.builds_path, testtype)):
+		full_filename = "%s/%s/%s"%(world.builds_path, testtype, filename)
+		if os.path.isfile(full_filename):
+			st = os.stat(full_filename)
+			mode = st.st_mode
+			if mode & executable:
+				command = "ln"
+				arg1 = "-s"
+				arg2 = "%s/%s/%s"%(world.builds_path, testtype, filename)
+				arg3 = "ocean_model_%s"%(testtype)
+				subprocess.call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)
+
 
 	# {{{ Setup namelist file
 	namelistfile = open(world.namelist, 'r+')
@@ -135,5 +148,5 @@ def get_test_case(step, size, levs, test, time_stepper, testtype, run_name):
 	#}}}
 
 	os.chdir(world.base_dir)
-#}}}
 
+#}}}
