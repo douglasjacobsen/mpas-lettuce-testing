@@ -13,9 +13,9 @@ import xml.etree.ElementTree as ET
 
 from namelist_python.namelist import read_namelist_file
 try:
-	from collections import OrderedDict
+	from collections import defaultdict
 except ImportError:
-	from utils import OrderedDict
+	from utils import defaultdict
 
 @world.absorb
 def seconds_to_timestamp(seconds):#{{{
@@ -24,7 +24,7 @@ def seconds_to_timestamp(seconds):#{{{
 	minutes = 0
 
 	if seconds >= 24*3600:
-		days = int(seconds/(24*3600))
+		days = int( int(seconds)/(24*3600))
 		seconds = seconds - int(days * 24 * 3600)
 
 	if seconds >= 3600:
@@ -83,22 +83,153 @@ def timestamp_to_seconds(timestamp):#{{{
 	return seconds
 #}}}
 
-@step('I perform a (\d+) processor MPAS "([^"]*)" run')#{{{
-def run_mpas(step, procs, executable):
+@world.absorb
+def ingest_namelist(filename):#{{{
+	world.namelist_ingested = True
+	world.namelist_dict = defaultdict(lambda : defaultdict(list))
+	namelistfile = open(filename, 'r+')
+	lines = namelistfile.readlines()
 
+	record_name = 'NONE!!!'
+
+	for line in lines:
+		if line.find('&') >= 0:
+			record_name = line.strip().strip('&').strip('\n')
+			world.namelist_dict[record_name] = defaultdict(list)
+		elif line.find('=') >= 0:
+			opt, val = line.strip().strip('\n').split('=')
+			if record_name != "NONE!!!":
+				world.namelist_dict[record_name][opt].append(val)
+#}}}
+
+@world.absorb
+def set_namelist_option(groupOwningOption, optionToChange, valueToSet):#{{{
+	foundRecord = False
+	foundOption = False
+	for record, opts in world.namelist_dict.items():
+		if record.find(groupOwningOption) >= 0:
+			foundRecord = True
+			for opt, val in opts.items():
+				if opt.find(optionToChange) >= 0:
+					foundOption = True
+					val[0] = valueToSet
+
+	if not foundRecord:
+		world.namelist_dict[groupOwningOption] = defaultdict(list)
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+	elif not foundOption:
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+#}}}
+
+@world.absorb
+def write_namelist(filename):#{{{
+	if world.namelist_ingested :
+		out_namelist = open(filename, 'w+')
+		for record, opts in world.namelist_dict.items():
+			out_namelist.write('&%s\n'%(record))
+
+			for opt, val in opts.items():
+				out_namelist.write('\t%s = %s\n'%(opt.strip(), val[0].strip()))
+
+			out_namelist.write('/\n\n')
+		out_namelist.close()
+#}}}
+
+@world.absorb
+def clear_namelist():#{{{
+	del world.namelist_dict
+	world.namelist_ingested = False
+#}}}
+
+
+@step('I remove all streams from the "([^"]*)" stream file')#{{{
+def flush_run_streams(step, run_type):
+	world.flush_streams(run_type)
+#}}}
+
+@step('I create a "([^"]*)" stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def create_stream(step, streamtype, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			print " ERROR: Stream %s already exists. Returning...\n"%(streamname)
+			return
+
+	stream = ET.SubElement(root, 'stream')
+	stream.set('name', streamname)
+	stream.set('type', streamtype)
+	stream.set('filename_template', 'none')
+	stream.set('filename_interval', 'none')
+	stream.set('output_interval', 'none')
+	stream.set('input_interval', 'none')
+
+	tree.write(st_file)
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the immutable_stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('immutable_stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I add a "([^"]*)" named "([^"]*)" to the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def add_stream_member(step, elementtype, elementname, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			member = ET.SubElement(stream, elementtype)
+			member.set('name', elementname)
+			tree.write(st_file)
+			return
+#}}}
+
+
+@step('I perform a (\d+) processor MPAS "([^"]*)" run in "([^"]*)"')#{{{
+def run_mpas_without_restart(step, procs, executable, run_name):
 	if ( world.run == True ):
-		if executable.find("testing") >= 0:
-			rundir = "%s/testing_tests/%s"%(world.base_dir, world.test)
-		elif executable.find("trusted") >= 0:
-			rundir = "%s/trusted_tests/%s"%(world.base_dir, world.test)
+		rundir = "%s/%s"%(world.scenario_path, run_name)
 
 		os.chdir(rundir)
 		command = "mpirun"
 		arg1 = "-n"
 		arg2 = "%s"%procs
 		arg3 = "./%s"%executable
+		arg4 = "-n"
+		arg5 = "%s"%world.namelist
+		arg6 = "-s"
+		arg7 = "%s"%world.streams
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -130,116 +261,88 @@ def run_mpas(step, procs, executable):
 		os.chdir(world.base_dir)
 #}}}
 
-@step('I perform a (\d+) processor MPAS  "([^"]*)" run with restart')#{{{
-def run_mpas_with_restart(step, procs, executable):
-
+@step('I perform a (\d+) processor MPAS "([^"]*)" run with restart in "([^"]*)"')#{{{
+def run_mpas_with_restart(step, procs, executable, run_name):
 	if ( world.run == True ):
-		if executable.find("testing") >= 0:
-			rundir = "%s/testing_tests/%s"%(world.base_dir, world.test)
-		elif executable.find("trusted") >= 0:
-			rundir = "%s/trusted_tests/%s"%(world.base_dir, world.test)
+		rundir = "%s/%s"%(world.scenario_path, run_name)
 
 		os.chdir(rundir)
 
-		#{{{ Setup initial namelist
-		duration = world.seconds_to_timestamp(world.dt)
-		final_time = world.seconds_to_timestamp(world.dt + 24*3600)
+		# Previous run should be setup to:
+		#  * be 2 time steps long
+		#  * have output interval set to the timestep length
+		#  * have restart interval set to the timestep length
 
+		# Now set up a run that does one time step, stops, then restarts for one more
+		# Setup the cold start for the first time step
 		namelistfile = open(world.namelist, 'r+')
 		lines = namelistfile.readlines()
-		namelistfile.seek(0)
-		namelistfile.truncate()
-
+		# first grab the config_dt as a string
 		for line in lines:
-			if line.find('config_start_time') >= 0:
-				new_line = "	config_start_time = 'file'\n"
-			elif line.find('config_run_duration') >= 0:
-				new_line = "	config_run_duration = '%s'\n"%duration
+			if line.find('config_dt') >= 0:
+				timestep_string = line.split("=")[1].strip().strip("'")
 			else:
 				new_line = line
-
 			namelistfile.write(new_line)
-
+		# now re-write the namelist file, updating run_duration to be 1 dt
+		namelistfile.seek(0)
+		namelistfile.truncate()
+		for line in lines:
+			if line.find('config_run_duration') >= 0:
+				new_line = "	config_run_duration = '%s'\n"%timestep_string
+			else:
+				new_line = line
+			namelistfile.write(new_line)
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
-			#}}}
 
-		#{{{ Setup initial streams file
-		tree = ET.parse(world.streams)
-		root = tree.getroot()
-
-		# Loop over immutable streams to find restart streams.
-		for stream in root.findall('immutable_stream'):
-			type = stream.get('type')
-
-			if ( type.find("output") != -1 ):
-				stream.set('output_interval', '01')
-
-		# Loop over mutable streams to find restart and output streams
-		for stream in root.findall('stream'):
-			type = stream.get('type')
-			name = stream.get('name')
-
-			if ( type.find("output") != -1 ):
-				stream.set('output_interval', '01')
-
-			if ( name.find("output") != -1 ):
-				stream.set('filename_template', 'output.nc')
-
-		tree.write(world.streams)
-		del tree
-		del root
-		#}}}
-
-		command = "mpirun"
-		arg1 = "-n"
-		arg2 = "%s"%procs
-		arg3 = "./%s"%executable
+		# Perform the cold start to get half way through the standard run
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+		# No need to keep/copy output, just continue on below
 
+		# Set namelist file to perform restart from last restart file (which you should have set up to land at the end of the run)
 		namelistfile = open(world.namelist, 'r+')
 		lines = namelistfile.readlines()
 		namelistfile.seek(0)
 		namelistfile.truncate()
-
 		for line in lines:
 			if line.find('config_do_restart') >= 0:
 				new_line = "	config_do_restart = .true.\n"
+			elif line.find('config_start_time') >= 0:
+				new_line = "	config_start_time = 'file'\n"
+			elif line.find('config_run_duration') >= 0:
+				new_line = "	config_run_duration = '%s'\n"%timestep_string  # Already set above, but setting again for clarity
 			else:
 				new_line = line
-
 			namelistfile.write(new_line)
-
-		namelistfile.write("mv output.nc %sprocs.restarted.output.nc"%(procs))
+                namelistfile.write('\n')
 		namelistfile.close()
 		del lines
 
-		command = "mpirun"
-		arg1 = "-n"
-		arg2 = "%s"%procs
-		arg3 = "./%s"%executable
+		# Run the restarted run to get to the end of the standard run
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
-		command = "mv"
-		arg1 = "output.nc"
-		arg2 = "%sprocs.restarted.output.nc"%procs
+		# Keep a copy of the completed restart run
 		try:
-			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
+			restart_output_file = "%sprocs.restarted.output.nc"%procs
+			subprocess.check_call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
+		# Augment the world metadata with this run
 		if world.num_runs == 0:
 			world.num_runs = 1
-			world.run1 = "%s/%s"%(rundir,arg2)
+			world.run1 = "%s/%s"%(rundir,restart_output_file)
 			world.run1dir = rundir
 			try:
 				del world.rms_values
@@ -248,7 +351,7 @@ def run_mpas_with_restart(step, procs, executable):
 				world.rms_values = defaultdict(list)
 		elif world.num_runs == 1:
 			world.num_runs = 2
-			world.run2 = "%s/%s"%(rundir,arg2)
+			world.run2 = "%s/%s"%(rundir,restart_output_file)
 			world.run2dir = rundir
 		os.chdir(world.base_dir)
 #}}}
@@ -317,24 +420,43 @@ def clean_test(step):
 		subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
-def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSet):
+def modify_namelist(step, run_name, groupOwningOption, optionToChange, valueToSet):
+	nl_file = "%s/%s/%s"%(world.scenario_path, run_name, world.namelist)
+	world.ingest_namelist(nl_file)
 
-	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
-	namelist = read_namelist_file(nl_file)
-	try:
-		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
-	except:  # If the group doesn't already exist, we'd get an error.
-		namelist.groups[groupOwningOption] = OrderedDict()
-		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
+	world.set_namelist_option(groupOwningOption, optionToChange, valueToSet)
 
-	with open(nl_file, 'w') as f:
-		f.write(namelist.dump())
+	world.write_namelist(nl_file)
+	world.clear_namelist()
 #}}}
 
+@world.absorb
+@step('I remove the "([^"]*)" stream from the "([^"]*)" stream file')#{{{
+def remove_stream(step, stream_name, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == stream_name:
+			root.remove(stream)
+			tree.write(st_file)
+			return
+
+	for stream in root.findall('immutable_stream'):
+		if stream.get('name') == stream_name:
+			root.remove(stream)
+			tree.write(st_file)
+			return
+#}}}
+
+@world.absorb
 @step('I remove all streams from the "([^"]*)" stream file')#{{{
-def flush_streams(step, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def flush_streams(step, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -348,9 +470,10 @@ def flush_streams(step, testtype):
 	del root
 #}}}
 
+@world.absorb
 @step('I create a "([^"]*)" stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def create_stream(step, streamtype, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def create_stream(step, streamtype, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -371,9 +494,10 @@ def create_stream(step, streamtype, streamname, testtype):
 	tree.write(st_file)
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" to "([^"]*)" in the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def modify_stream_attribute(step, option, value, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -385,9 +509,10 @@ def modify_stream_attribute(step, option, value, streamname, testtype):
 			return
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" to "([^"]*)" in the immutable_stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def modify_stream_attribute(step, option, value, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def modify_immutable_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -399,9 +524,10 @@ def modify_stream_attribute(step, option, value, streamname, testtype):
 			return
 #}}}
 
+@world.absorb
 @step('I add a "([^"]*)" named "([^"]*)" to the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def add_stream_member(step, elementtype, elementname, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def add_stream_member(step, elementtype, elementname, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
