@@ -245,6 +245,8 @@ def setup_scenario(scenario):
 	else:
 		subprocess.check_call(['rm', '-rf', "%s"%(world.scenario_path)], stdout=world.dev_null, stderr=world.dev_null)
 		os.makedirs("%s"%(world.scenario_path))
+
+	world.num_runs = 0
 #}}}
 
 @after.each_scenario#{{{

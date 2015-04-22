@@ -9,7 +9,6 @@ from lettuce import *
 def get_test_case(step, test, testtype, run_name):
 
 	world.test = "%s"%(test)
-	world.num_runs = 0
 	world.namelist = "namelist.landice"
 	world.streams = "streams.landice"
 

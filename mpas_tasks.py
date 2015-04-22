@@ -385,7 +385,7 @@ def compute_rms(step, variable):
 			f2.close()
 			os.chdir(world.base_dir)
 		else:
-			print 'Less than two runs. Skipping RMS computation.'
+			assert False, "Error: RMS cannot be computed because lettuce has not detected 2 runs.  Lettuce found %i runs."%world.num_runs
 #}}}
 
 @step('I see "([^"]*)" RMS of 0')#{{{
