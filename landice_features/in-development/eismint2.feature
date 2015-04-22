@@ -3,10 +3,12 @@ Feature: Reproduce EISMINT2 benchmark solutions
         As an MPAS Developer
         I want MPAS-Land Ice SIA simulations to match the EISMINT2 benchmark solutions.
 
+
+
 	Scenario: 1 procs with EISMINT2-a SIA
-		Given A "EISMINT2" test for "testing"
+		Given A "EISMINT2" test for "testing" model version as run name "eismint-a"
 		Given EISMINT2 experiment "a" 
-#		When I perform a 4 processor MPAS "landice_model_testing" run
-#		Then I see a MPAS results within range of EISMINT2 experiment "a" benchmarks.
+		When I perform a 1 processor MPAS "landice_model_testing" run in "eismint-a"
+		Then I see a MPAS results within range of EISMINT2 experiment "a" benchmarks.
 
 

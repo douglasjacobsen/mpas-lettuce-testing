@@ -5,15 +5,20 @@ from lettuce import *
 
 
 # ==============================================================================
-@step('A "([^"]*)" test for "([^"]*)"')
-def get_test_case(step, test, testtype):
+@step('A "([^"]*)" test for "([^"]*)" model version as run name "([^"]*)"')
+def get_test_case(step, test, testtype, run_name):
 
 	world.test = "%s"%(test)
 	world.num_runs = 0
 	world.namelist = "namelist.landice"
 	world.streams = "streams.landice"
 
-	# -- Figure out test case archive name
+	# -- Set up storage area for test case tarballs
+	if not os.path.exists("%s/tests/%s_inputs"%(world.base_dir, testtype)):
+		os.makedirs("%s/tests/%s_inputs"%(world.base_dir, testtype))
+	os.chdir("%s/tests/%s_inputs"%(world.base_dir, testtype))
+
+	# -- Figure out test case archive name (tc_filename)
 	if testtype == 'trusted':
 		test_url = world.trusted_url
 	elif testtype == 'testing':
@@ -27,21 +32,12 @@ def get_test_case(step, test, testtype):
 		print 'Error: Unable to determine test case filename!'
 		assert testcase_filename_error
 
-	# -- make trusted/testing_tests directory it it doesn't already exist and cd to it.
-	testpath = world.base_dir + '/' + testtype + '_tests'
-	try:
-		os.makedirs(testpath)
-	except OSError:
-		if not os.path.isdir(testpath):  # if the directory already exists, don't raise an error
-			raise
-	os.chdir(testpath)
-
-	# -- get test tarball if we don't already have it
+	# -- get test tarball if we don't already have it and stash it in the storage area
+	# Only do this is we have network access (world.clone=True)
 	if world.clone == True:
-		if not os.path.exists(testpath + '/' + tc_filename):
+		if not os.path.exists(tc_filename):
 			#print "Getting test case file.\n"
 			try:
-				print testpath + '/' + tc_filename +"\n"
 				subprocess.check_call(["wget", "--trust-server-names", test_url + "/" + tc_filename], stdout=world.dev_null, stderr=world.dev_null)
 				# "--trust-server-names"  if the server redirects to an error page, this prevents that page from being named the test archive name - which is confusing!
 			except:
@@ -53,41 +49,27 @@ def get_test_case(step, test, testtype):
 	else:
 		print "       Skipping retrieval of test case archive for " + testtype + " test because 'clone=off' in lettuce.landice.\n"
 
-	# -- Delete test dir if it already exists.  Then untar it
-	thistestpath = world.base_dir + '/' + testtype + '_tests/' + world.test
-	if os.path.exists(thistestpath):
-		shutil.rmtree(thistestpath)
+	# -- Delete the run directory if already exists so we have a fresh run & cd into it
+	run_directory_path = "%s/%s"%(world.scenario_path, run_name)
+	if os.path.exists(run_directory_path):
+		shutil.rmtree(run_directory_path)
+	os.chdir("%s"%(world.scenario_path))
+
+	# -- untar tarball into test directory
 	try:
-		subprocess.check_call(["tar", "xzf", tc_filename], stdout=world.dev_null, stderr=world.dev_null)
+		subprocess.check_call(["tar", "xzf", '%s/tests/%s_inputs/%s'%(world.base_dir, testtype, tc_filename)], stdout=world.dev_null, stderr=world.dev_null)
+		os.rename(world.test, run_name) # rename the untarred testcase directory to the specified run_name
 	except:
 		print "Error: unable to untar the archive file\n"
 		raise
-	#		try:
-	#			command = "cp"
-	#			arg1 = "%s/namelist.input"%world.test
-	#			arg2 = "%s/namelist.input.default"%world.test
-	#			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
-	#		except:
-	#			print "Error: unable to backup namelist\n"
-	#			raise
 
-	# go into the test directory
-	os.chdir(world.base_dir + "/" + testtype + "_tests/" + world.test)
+	# -- go into the test directory
+	os.chdir(world.scenario_path + "/" + run_name)
 
-	# link executable
-	os.symlink(world.base_dir+'/' + testtype + '/landice_model', 'landice_model_'+testtype)
+	# -- link executable
+	os.symlink(world.base_dir+'/builds/' + testtype + '/landice_model', 'landice_model_'+testtype)
 
-	#	# copy default namelist to standard namelist
-	#	command = "cp"
-	#	arg1 = "namelist.input.default"
-	#	arg2 = "namelist.input"
-	#	subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
-
-	# remove any output files
-	command = "rm"
-	arg1 = "-f"
-	arg2 = '\*.output.nc'
-	subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
+	# (could also backup namelist and streams files but I don't think that's needed)
 
 	os.chdir(world.base_dir)
 
