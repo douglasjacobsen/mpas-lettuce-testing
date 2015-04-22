@@ -103,6 +103,25 @@ def ingest_namelist(filename):#{{{
 #}}}
 
 @world.absorb
+def set_namelist_option(groupOwningOption, optionToChange, valueToSet):#{{{
+	foundRecord = False
+	foundOption = False
+	for record, opts in world.namelist_dict.items():
+		if record.find(groupOwningOption) >= 0:
+			foundRecord = True
+			for opt, val in opts.items():
+				if opt.find(optionToChange) >= 0:
+					foundOption = True
+					val[0] = valueToSet
+
+	if not foundRecord:
+		world.namelist_dict[groupOwningOption] = defaultdict(list)
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+	elif not foundOption:
+		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+#}}}
+
+@world.absorb
 def write_namelist(filename):#{{{
 	if world.namelist_ingested :
 		out_namelist = open(filename, 'w+')
@@ -121,6 +140,79 @@ def clear_namelist():#{{{
 	del world.namelist_dict
 	world.namelist_ingested = False
 #}}}
+
+
+@step('I remove all streams from the "([^"]*)" stream file')#{{{
+def flush_run_streams(step, run_type):
+	world.flush_streams(run_type)
+#}}}
+
+@step('I create a "([^"]*)" stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def create_stream(step, streamtype, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			print " ERROR: Stream %s already exists. Returning...\n"%(streamname)
+			return
+
+	stream = ET.SubElement(root, 'stream')
+	stream.set('name', streamname)
+	stream.set('type', streamtype)
+	stream.set('filename_template', 'none')
+	stream.set('filename_interval', 'none')
+	stream.set('output_interval', 'none')
+	stream.set('input_interval', 'none')
+
+	tree.write(st_file)
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I set "([^"]*)" to "([^"]*)" in the immutable_stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('immutable_stream'):
+		if stream.get('name') == streamname:
+			stream.set(option, value)
+			tree.write(st_file)
+			return
+#}}}
+
+@step('I add a "([^"]*)" named "([^"]*)" to the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
+def add_stream_member(step, elementtype, elementname, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
+
+	tree = ET.parse(st_file)
+	root = tree.getroot()
+
+	for stream in root.findall('stream'):
+		if stream.get('name') == streamname:
+			member = ET.SubElement(stream, elementtype)
+			member.set('name', elementname)
+			tree.write(st_file)
+			return
+#}}}
+
 
 @step('I perform a (\d+) processor MPAS "([^"]*)" run in "([^"]*)"')#{{{
 def run_mpas_without_restart(step, procs, executable, run_name):
@@ -328,42 +420,43 @@ def clean_test(step):
 		subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
-def modify_namelist(step, testtype, groupOwningOption, optionToChange, valueToSet):
-	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
+def modify_namelist(step, run_name, groupOwningOption, optionToChange, valueToSet):
+	nl_file = "%s/%s/%s"%(world.scenario_path, run_name, world.namelist)
 	world.ingest_namelist(nl_file)
-	if world.namelist_dict.has_key(groupOwningOption):
-		if world.namelist_dict[groupOwningOption].has_key(optionToChange):
-			world.namelist_dict[groupOwningOption][optionToChange][0] = valueToSet
-		else:
-			world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
-	else:
-		world.namelist_dict[groupOwningOption] = defaultdict(list)
-		world.namelist_dict[groupOwningOption][optionToChange].append(valueToSet)
+
+	world.set_namelist_option(groupOwningOption, optionToChange, valueToSet)
 
 	world.write_namelist(nl_file)
 	world.clear_namelist()
 #}}}
 
-@step('I do not set "([^"]*)" namelist group "([^"]*)", option "([^"]*)" to "([^"]*)"')#{{{
-def junk_namelist_old(step, testtype, groupOwningOption, optionToChange, valueToSet):
+@world.absorb
+@step('I remove the "([^"]*)" stream from the "([^"]*)" stream file')#{{{
+def remove_stream(step, stream_name, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
-	nl_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.namelist)
-	namelist = read_namelist_file(nl_file)
-	try:
-		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
-	except:  # If the group doesn't already exist, we'd get an error.
-		namelist.groups[groupOwningOption] = OrderedDict()
-		namelist.groups[groupOwningOption][optionToChange] = str(valueToSet)  # The 'str' here is to convert from unicode to string format
+	tree = ET.parse(st_file)
+	root = tree.getroot()
 
-	with open(nl_file, 'w') as f:
-		f.write(namelist.dump())
-                f.write('\n')
+	for stream in root.findall('stream'):
+		if stream.get('name') == stream_name:
+			root.remove(stream)
+			tree.write(st_file)
+			return
+
+	for stream in root.findall('immutable_stream'):
+		if stream.get('name') == stream_name:
+			root.remove(stream)
+			tree.write(st_file)
+			return
 #}}}
 
+@world.absorb
 @step('I remove all streams from the "([^"]*)" stream file')#{{{
-def flush_streams(step, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def flush_streams(step, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -377,9 +470,10 @@ def flush_streams(step, testtype):
 	del root
 #}}}
 
+@world.absorb
 @step('I create a "([^"]*)" stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def create_stream(step, streamtype, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def create_stream(step, streamtype, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -400,9 +494,10 @@ def create_stream(step, streamtype, streamname, testtype):
 	tree.write(st_file)
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" to "([^"]*)" in the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def modify_stream_attribute(step, option, value, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def modify_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -414,9 +509,10 @@ def modify_stream_attribute(step, option, value, streamname, testtype):
 			return
 #}}}
 
+@world.absorb
 @step('I set "([^"]*)" to "([^"]*)" in the immutable_stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def modify_stream_attribute(step, option, value, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def modify_immutable_stream_attribute(step, option, value, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
@@ -428,9 +524,10 @@ def modify_stream_attribute(step, option, value, streamname, testtype):
 			return
 #}}}
 
+@world.absorb
 @step('I add a "([^"]*)" named "([^"]*)" to the stream named "([^"]*)" in the "([^"]*)" stream file')#{{{
-def add_stream_member(step, elementtype, elementname, streamname, testtype):
-	st_file = "%s/%s_tests/%s/%s"%(world.base_dir, testtype, world.test, world.streams)
+def add_stream_member(step, elementtype, elementname, streamname, run_type):
+	st_file = "%s/%s/%s"%(world.scenario_path, run_type, world.streams)
 
 	tree = ET.parse(st_file)
 	root = tree.getroot()
