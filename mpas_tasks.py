@@ -11,7 +11,6 @@ from lettuce import *
 from collections import defaultdict
 import xml.etree.ElementTree as ET
 
-from namelist_python.namelist import read_namelist_file
 try:
 	from collections import defaultdict
 except ImportError:
