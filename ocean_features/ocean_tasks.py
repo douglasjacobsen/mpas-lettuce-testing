@@ -1,5 +1,6 @@
 import sys, os, glob, shutil, numpy, math, stat
 import subprocess
+import re
 
 from netCDF4 import *
 from netCDF4 import Dataset as NetCDFFile
@@ -61,14 +62,59 @@ def get_test_case(step, size, levs, test, testtype, run_name):
 def setup_namelist(step, run_name, integrator, dt, run_duration):
 	os.chdir("%s/%s"%(world.scenario_path, run_name))
 
-	# Find namelist filename
+	executable_name = "None"
+
+	# Find namelist filename and executable filename
 	for filename in os.listdir('%s/%s'%(world.scenario_path, run_name)):
 		if os.path.isfile(filename):
 			if filename.find('namelist') >= 0 and filename.find('default') < 0:
 				world.namelist = filename
 			elif filename.find('streams') >= 0 and filename.find('default') < 0:
 				world.streams = filename
+			elif filename.find('ocean_model_') >= 0:
+				executable_name = filename
+
+	test_type = executable_name[12:]
+	test_type = re.sub('ocean_model_', '', executable_name)
+	test_type = executable_name.replace('ocean_model_', '')
+
+	# Build a new registry file to parse:
+	full_filename = '%s/%s/src/core_ocean/Registry_processed.xml'%(world.builds_path, test_type)
+
+	fd = open(full_filename)
+	contents = fd.readlines()
+	fd.close()
+
+	new_file = open('Temp_registry.xml', 'w+')
+	for line in contents:
+		if not line.strip():
+			continue
+		else:
+			new_file.write(line)
+	new_file.close()
+
+	# Find name of tracers group
+	tracers_name = "None"
+	tracers_found = False
+	tree = ET.parse('Temp_registry.xml')
+	root = tree.getroot()
+	for var_struct in root.findall('var_struct'):
+		if var_struct.get('name') == 'state':
+			for var_array in var_struct.findall('var_array'):
+				if var_array.get('name') == 'tracers':
+					tracers_name = 'tracers'
+					tracers_found = True
+			if not tracers_found:
+				for sub_struct in var_struct.findall('var_struct'):
+					if sub_struct.get('name') == 'tracers':
+						for var_array in sub_struct.findall('var_array'):
+							if var_array.get('name') == 'activeTracers':
+								tracers_name = 'activeTracers'
+								tracers_found = True
 	
+	if not tracers_found:
+		print "\n\n**** COULDN'T FIND TRACERS VAR_ARRAY****\n\n"
+
 	nl_file = "%s/%s/%s"%(world.scenario_path, run_name, world.namelist)
 	world.ingest_namelist(nl_file)
 
@@ -85,7 +131,7 @@ def setup_namelist(step, run_name, integrator, dt, run_duration):
 	world.modify_stream_attribute(step, 'output_interval', dt.strip("'"), 'output', run_name)
 	world.modify_stream_attribute(step, 'clobber_mode', 'truncate', 'output', run_name)
 
-	world.add_stream_member(step, 'var_array', 'tracers', 'output', run_name)
+	world.add_stream_member(step, 'var_array', tracers_name, 'output', run_name)
 	world.add_stream_member(step, 'var', 'layerThickness', 'output', run_name)
 	world.add_stream_member(step, 'var', 'normalVelocity', 'output', run_name)
 	world.add_stream_member(step, 'var', 'xtime', 'output', run_name)
