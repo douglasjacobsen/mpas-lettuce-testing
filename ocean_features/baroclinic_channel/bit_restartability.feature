@@ -6,7 +6,7 @@ Feature: Baroclinic Channel Simulations Bit Restartability
 			- Using different numbers of blocks per processor
 			- Using different physics options
 
-	Scenario: 2 vs 16 procs with split explicit - BC
+	Scenario: 2 vs 16 procs with split explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "split_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing16wRst" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:10:00'"
@@ -17,7 +17,7 @@ Feature: Baroclinic Channel Simulations Bit Restartability
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: 1 vs 2 procs with RK4 - BC
+	Scenario: 1 vs 2 procs with RK4
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "RK4"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2wRst" with integrator "RK4"
 		When I configure the "testing1" run to have run_duration "'0000_00:01:00'"
@@ -28,7 +28,7 @@ Feature: Baroclinic Channel Simulations Bit Restartability
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: 4 vs 24 procs with unsplit_explicit - BC
+	Scenario: 4 vs 24 procs with unsplit_explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing4" with integrator "unsplit_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24wRst" with integrator "unsplit_explicit"
 		When I configure the "testing4" run to have run_duration "'0000_00:01:00'"
