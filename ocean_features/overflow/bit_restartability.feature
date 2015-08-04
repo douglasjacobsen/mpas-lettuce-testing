@@ -6,7 +6,7 @@ Feature: Overflow Bit-Restartable simulations
 			- Using different numbers of blocks per processor
 			- Using different physics options
 
-	Scenario: Decomp 2 vs 16 procs with split explicit
+	Scenario: Restart Decomp 2 vs 16 procs with split explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "split_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:06:00'"
@@ -17,7 +17,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Decomp 2 vs 16 procs with RK4
+	Scenario: Restart Decomp 2 vs 16 procs with RK4
 		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "RK4"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "RK4"
 		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
@@ -28,7 +28,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Decomp 2 vs 16 procs with unsplit_explicit
+	Scenario: Restart Decomp 2 vs 16 procs with unsplit_explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "unsplit_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "unsplit_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
@@ -39,7 +39,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 1 vs 24 procs with split explicit
+	Scenario: Restart Halos 1 vs 24 procs with split explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing1" with integrator "split_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing24" with integrator "split_explicit"
 		When I configure the "testing1" run to have run_duration "'0000_00:06:00'"
@@ -52,7 +52,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 4 vs 8 procs with RK4
+	Scenario: Restart Halos 4 vs 8 procs with RK4
 		Given A "10km" "100layer" "overflow" "testing" test as "testing4" with integrator "RK4"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing8" with integrator "RK4"
 		When I configure the "testing4" run to have run_duration "'0000_00:01:00'"
@@ -65,7 +65,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 2 vs 16 procs with unsplit_explicit
+	Scenario: Restart Halos 2 vs 16 procs with unsplit_explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "unsplit_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16" with integrator "unsplit_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
@@ -78,7 +78,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 1 vs 24 procs with split explicit
+	Scenario: Restart Blocks 1 vs 24 procs with split explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing1" with integrator "split_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing24" with integrator "split_explicit"
 		When I configure the "testing1" run to have run_duration "'0000_00:06:00'"
@@ -91,7 +91,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 4 vs 8 procs with RK4
+	Scenario: Restart Blocks 4 vs 8 procs with RK4
 		Given A "10km" "100layer" "overflow" "testing" test as "testing4" with integrator "RK4"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing8" with integrator "RK4"
 		When I configure the "testing4" run to have run_duration "'0000_00:01:00'"
@@ -104,7 +104,7 @@ Feature: Overflow Bit-Restartable simulations
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 2 vs 16 procs with unsplit_explicit
+	Scenario: Restart Blocks 2 vs 16 procs with unsplit_explicit
 		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "unsplit_explicit"
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16" with integrator "unsplit_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
@@ -113,6 +113,45 @@ Feature: Overflow Bit-Restartable simulations
 		When I set "testing16" namelist group "decomposition", option "config_number_of_blocks" to "24"
 		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
 		Given I perform a 16 processor MPAS "ocean_model_testing" run in "testing16"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Restart Physics 2 vs 16 procs with split explicit
+		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "split_explicit"
+		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "split_explicit"
+		When I configure the "testing2" run to have run_duration "'0000_00:06:00'"
+		When I configure the "testing16wRst" run to have run_duration "'0000_00:06:00'"
+		When I add all physics to the "testing2" run
+		When I add all physics to the "testing16wRst" run
+		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
+		Given I perform a 16 processor MPAS "ocean_model_testing" run with restart in "testing16wRst"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Restart Physics 2 vs 16 procs with RK4
+		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "RK4"
+		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "RK4"
+		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
+		When I configure the "testing16wRst" run to have run_duration "'0000_00:01:00'"
+		When I add all physics to the "testing2" run
+		When I add all physics to the "testing16wRst" run
+		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
+		Given I perform a 16 processor MPAS "ocean_model_testing" run with restart in "testing16wRst"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Restart Physics 2 vs 16 procs with unsplit_explicit
+		Given A "10km" "100layer" "overflow" "testing" test as "testing2" with integrator "unsplit_explicit"
+		Given A "10km" "100layer" "overflow" "testing" test as "testing16wRst" with integrator "unsplit_explicit"
+		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
+		When I configure the "testing16wRst" run to have run_duration "'0000_00:01:00'"
+		When I add all physics to the "testing2" run
+		When I add all physics to the "testing16wRst" run
+		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
+		Given I perform a 16 processor MPAS "ocean_model_testing" run with restart in "testing16wRst"
 		Then I add the prognostic fields to be compared
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds

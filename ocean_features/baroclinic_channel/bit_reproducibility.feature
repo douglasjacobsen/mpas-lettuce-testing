@@ -6,7 +6,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 			- Using different numbers of blocks per processor
 			- Using different physics options
 
-	Scenario: Decomp 2 vs 16 procs with split explicit
+	Scenario: Repro Decomp 2 vs 16 procs with split explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "split_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing16" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:05:00'"
@@ -17,7 +17,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Decomp 1 vs 24 procs with RK4
+	Scenario: Repro Decomp 1 vs 24 procs with RK4
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "RK4"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "RK4"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -28,7 +28,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Decomp 1 vs 24 procs with unsplit_explicit
+	Scenario: Repro Decomp 1 vs 24 procs with unsplit_explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "unsplit_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "unsplit_explicit"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -39,7 +39,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 2 vs 16 procs with split explicit
+	Scenario: Repro Halos 2 vs 16 procs with split explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "split_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing16" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:05:00'"
@@ -52,7 +52,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 1 vs 24 procs with RK4
+	Scenario: Repro Halos 1 vs 24 procs with RK4
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "RK4"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "RK4"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -65,7 +65,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Halos 1 vs 24 procs with unsplit_explicit
+	Scenario: Repro Halos 1 vs 24 procs with unsplit_explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "unsplit_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "unsplit_explicit"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -78,7 +78,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 2 vs 16 procs with split explicit
+	Scenario: Repro Blocks 2 vs 16 procs with split explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "split_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing16" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:05:00'"
@@ -91,7 +91,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 1 vs 24 procs with RK4
+	Scenario: Repro Blocks 1 vs 24 procs with RK4
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "RK4"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "RK4"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -104,7 +104,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Blocks 1 vs 24 procs with unsplit_explicit
+	Scenario: Repro Blocks 1 vs 24 procs with unsplit_explicit
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "unsplit_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "unsplit_explicit"
 		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
@@ -117,7 +117,46 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Trusted 2 vs 16 procs with RK4 against trusted
+	Scenario: Repro Physics 2 vs 16 procs with split explicit
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "split_explicit"
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing16" with integrator "split_explicit"
+		When I configure the "testing2" run to have run_duration "'0000_00:05:00'"
+		When I configure the "testing16" run to have run_duration "'0000_00:05:00'"
+		When I add all physics to the "testing2" run
+		When I add all physics to the "testing16" run
+		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
+		Given I perform a 16 processor MPAS "ocean_model_testing" run in "testing16"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Repro Physics 1 vs 24 procs with RK4
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "RK4"
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "RK4"
+		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
+		When I configure the "testing24" run to have run_duration "'0000_00:00:30'"
+		When I add all physics to the "testing1" run
+		When I add all physics to the "testing24" run
+		Given I perform a 1 processor MPAS "ocean_model_testing" run in "testing1"
+		Given I perform a 24 processor MPAS "ocean_model_testing" run in "testing24"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Repro Physics 1 vs 24 procs with unsplit_explicit
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing1" with integrator "unsplit_explicit"
+		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "unsplit_explicit"
+		When I configure the "testing1" run to have run_duration "'0000_00:00:30'"
+		When I configure the "testing24" run to have run_duration "'0000_00:00:30'"
+		When I add all physics to the "testing1" run
+		When I add all physics to the "testing24" run
+		Given I perform a 1 processor MPAS "ocean_model_testing" run in "testing1"
+		Given I perform a 24 processor MPAS "ocean_model_testing" run in "testing24"
+		Then I add the prognostic fields to be compared
+		Then I compute RMSes of all of my fields
+		Then I verify my RMSes are within my thresholds
+
+	Scenario: Repro Trusted 2 vs 16 procs with RK4 against trusted
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "RK4"
 		Given A "10km" "20levs" "baroclinic_channel" "trusted" test as "trusted16" with integrator "RK4"
 		When I configure the "testing2" run to have run_duration "'0000_00:00:30'"
@@ -128,7 +167,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Trusted 2 vs 16 procs with unsplit_explicit against trusted
+	Scenario: Repro Trusted 2 vs 16 procs with unsplit_explicit against trusted
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "unsplit_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "trusted" test as "trusted16" with integrator "unsplit_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:00:30'"
@@ -139,7 +178,7 @@ Feature: Baroclinic Channel Simulations Bit Reproducilibity
 		Then I compute RMSes of all of my fields
 		Then I verify my RMSes are within my thresholds
 
-	Scenario: Trusted 24 vs 4 procs with split explicit against trusted
+	Scenario: Repro Trusted 24 vs 4 procs with split explicit against trusted
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing24" with integrator "split_explicit"
 		Given A "10km" "20levs" "baroclinic_channel" "trusted" test as "trusted4" with integrator "split_explicit"
 		When I configure the "testing24" run to have run_duration "'0000_00:00:30'"

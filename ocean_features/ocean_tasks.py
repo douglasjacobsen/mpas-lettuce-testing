@@ -357,3 +357,67 @@ def add_global_stats_fields(step):
 	world.rms_thresholds['salinityMaxVertSum'].append(1e-14)
 	world.rms_thresholds['tracer1MaxVertSum'].append(1e-14)
 #}}}
+
+# Physics option functions
+@step('I add all physics to the "([^"]*)" run')#{{{
+def setup_full_physics(step, run_name):
+	setup_hmix_del2(step, run_name)
+#	setup_hmix_del4(step, run_name)
+#	setup_hmix_del2_tensor(step, run_name)
+#	setup_hmix_del4_tensor(step, run_name)
+#	setup_hmix_leith(step, run_name)
+	setup_rayleigh(step, run_name)
+#	setup_mesoscale_eddy_parameterization(step, run_name)
+
+#	world.modify_namelist(step, run_name, "hmix", "config_hmix_scaleWithMesh", ".true.")
+#}}}
+
+@step('I add hmix_del2 to the "([^"]*)" run')#{{{
+def setup_hmix_del2(step, run_name):
+	world.modify_namelist(step, run_name, "hmix_del2", "config_use_mom_del2", ".true.")
+	world.modify_namelist(step, run_name, "hmix_del2", "config_mom_del2", "0.001")
+#	world.modify_namelist(step, run_name, "hmix_del2", "config_use_tracer_del2", ".true.")
+#	world.modify_namelist(step, run_name, "hmix_del2", "config_tracer_del2", "0.001")
+#}}}
+
+@step('I add hmix_del4 to the "([^"]*)" run')#{{{
+def setup_hmix_del4(step, run_name):
+	world.modify_namelist(step, run_name, "hmix_del4", "config_use_mom_del4", ".true.")
+	world.modify_namelist(step, run_name, "hmix_del4", "config_mom_del4", "1.0")
+	world.modify_namelist(step, run_name, "hmix_del4", "config_use_tracer_del4", ".true.")
+	world.modify_namelist(step, run_name, "hmix_del4", "config_tracer_del4", "1.0")
+#}}}
+
+@step('I add hmix_Leith to the "([^"]*)" run')#{{{
+def setup_hmix_leith(step, run_name):
+	world.modify_namelist(step, run_name, "hmix_Leith", "config_use_Leith_del2", ".true.")
+	world.modify_namelist(step, run_name, "hmix_Leith", "config_Leith_dx", "15000.0")
+	world.modify_namelist(step, run_name, "hmix_Leith", "config_Leith_visc2_max", "2.5e3")
+	world.modify_namelist(step, run_name, "hmix_Leith", "config_Leith_parameter", "1.0")
+#}}}
+
+@step('I add hmix_del2_tensor to the "([^"]*)" run')#{{{
+def setup_hmix_del2_tensor(step, run_name):
+	world.modify_namelist(step, run_name, "hmix_del2_tensor", "config_use_mom_del2_tensor", ".true.")
+	world.modify_namelist(step, run_name, "hmix_del2_tensor", "config_mom_del2_tensor", "1.0")
+#}}}
+
+@step('I add hmix_del4_tensor to the "([^"]*)" run')#{{{
+def setup_hmix_del4_tensor(step, run_name):
+	world.modify_namelist(step, run_name, "hmix_del4_tensor", "config_use_mom_del4_tensor", ".true.")
+	world.modify_namelist(step, run_name, "hmix_del4_tensor", "config_mom_del4_tensor", "1.0")
+#}}}
+
+@step('I add Rayleigh demping to the "([^"]*)" run')#{{{
+def setup_rayleigh(step, run_name):
+	world.modify_namelist(step, run_name, "Rayleigh_damping", "config_Rayleigh_friction", ".true.")
+	world.modify_namelist(step, run_name, "Rayleigh_damping", "config_Rayleigh_damping_coeff", "0.001")
+#}}}
+
+@step('I add mesoscale eddy parameterization to the "([^"]*)" run')#{{{
+def setup_mesoscale_eddy_parameterization(step, run_name):
+	world.modify_namelist(step, run_name, "mesoscale_eddy_parameterization", "config_standardGM_tracer_kappa", "0.001")
+	world.modify_namelist(step, run_name, "mesoscale_eddy_parameterization", "config_use_standardGM", ".true.")
+	world.modify_namelist(step, run_name, "mesoscale_eddy_parameterization", "config_Redi_kappa", "0.001")
+#}}}
+
