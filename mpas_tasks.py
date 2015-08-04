@@ -106,10 +106,10 @@ def set_namelist_option(groupOwningOption, optionToChange, valueToSet):#{{{
 	foundRecord = False
 	foundOption = False
 	for record, opts in world.namelist_dict.items():
-		if record.find(groupOwningOption) >= 0:
+		if record.strip() == groupOwningOption:
 			foundRecord = True
 			for opt, val in opts.items():
-				if opt.find(optionToChange) >= 0:
+				if opt.strip() == optionToChange:
 					foundOption = True
 					val[0] = valueToSet
 
@@ -230,20 +230,26 @@ def run_mpas_without_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+
 		if os.path.exists('output.nc'):
 			outfile = 'output.nc'
 		else:
 			outfile = "output.0000-01-01_00.00.00.nc"
+
 		command = "mv"
 		arg1 = outfile
 		arg2 = "%sprocs.output.nc"%procs
+
 		try:
 			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+
 		if world.num_runs == 0:
 			world.num_runs = 1
 			world.run1 = "%s/%s"%(rundir, arg2)
@@ -296,6 +302,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 		# No need to keep/copy output, just continue on below
@@ -323,6 +330,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
@@ -331,6 +339,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 			restart_output_file = "%sprocs.restarted.output.nc"%procs
 			subprocess.check_call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
