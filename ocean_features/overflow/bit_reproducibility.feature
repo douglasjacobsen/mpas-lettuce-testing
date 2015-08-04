@@ -122,7 +122,7 @@ Feature: Overflow Bit-Reproducible simulations
 		Given A "10km" "100layer" "overflow" "testing" test as "testing16" with integrator "split_explicit"
 		When I configure the "testing2" run to have run_duration "'0000_00:03:00'"
 		When I configure the "testing16" run to have run_duration "'0000_00:03:00'"
-		When I add all physics to the "testing1" run
+		When I add all physics to the "testing2" run
 		When I add all physics to the "testing16" run
 		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
 		Given I perform a 16 processor MPAS "ocean_model_testing" run in "testing16"

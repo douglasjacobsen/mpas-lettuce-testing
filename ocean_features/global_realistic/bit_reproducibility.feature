@@ -207,7 +207,7 @@ Feature: Global Realistic Simulations Bit Reproducilibity
 
 	Scenario: Repro Trusted 4 vs 16 procs with split explicit
 		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing4" with integrator "split_explicit"
-		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing16" with integrator "split_explicit"
+		Given A "QU_240km" "40levels" "global_realistic" "trusted" test as "testing16" with integrator "split_explicit"
 		When I configure the "testing4" run to have run_duration "'0000_02:00:00'"
 		When I configure the "testing16" run to have run_duration "'0000_02:00:00'"
 		When I set "testing4" namelist group "time_management", option "config_do_restart" to ".true."
@@ -222,7 +222,7 @@ Feature: Global Realistic Simulations Bit Reproducilibity
 
 	Scenario: Repro Trusted 4 vs 16 procs with RK4
 		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing4" with integrator "RK4"
-		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing16" with integrator "RK4"
+		Given A "QU_240km" "40levels" "global_realistic" "trusted" test as "testing16" with integrator "RK4"
 		When I configure the "testing4" run to have run_duration "'0000_00:20:00'"
 		When I configure the "testing16" run to have run_duration "'0000_00:20:00'"
 		When I set "testing4" namelist group "time_management", option "config_do_restart" to ".true."
@@ -237,7 +237,7 @@ Feature: Global Realistic Simulations Bit Reproducilibity
 
 	Scenario: Repro Trusted 4 vs 16 procs with unsplit_explicit
 		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing4" with integrator "unsplit_explicit"
-		Given A "QU_240km" "40levels" "global_realistic" "testing" test as "testing16" with integrator "unsplit_explicit"
+		Given A "QU_240km" "40levels" "global_realistic" "trusted" test as "testing16" with integrator "unsplit_explicit"
 		When I configure the "testing4" run to have run_duration "'0000_00:20:00'"
 		When I configure the "testing16" run to have run_duration "'0000_00:20:00'"
 		When I set "testing4" namelist group "time_management", option "config_do_restart" to ".true."
