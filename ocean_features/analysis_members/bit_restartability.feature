@@ -54,13 +54,13 @@ Feature: Analysis Members Bit Reproducilibity
 
 	Scenario: Restart Trusted 2 vs 16 procs with RK4 against trusted
 		Given A "10km" "20levs" "baroclinic_channel" "testing" test as "testing2" with integrator "RK4"
-		Given A "10km" "20levs" "baroclinic_channel" "trusted" test as "trusted16" with integrator "RK4"
+		Given A "10km" "20levs" "baroclinic_channel" "trusted" test as "trusted16wRst" with integrator "RK4"
 		When I configure the "testing2" run to have run_duration "'0000_00:01:00'"
-		When I configure the "trusted16" run to have run_duration "'0000_00:01:00'"
+		When I configure the "trusted16wRst" run to have run_duration "'0000_00:01:00'"
 		When I add globalStats to the "testing2" run
-		When I add globalStats to the "testing16wRst" run
+		When I add globalStats to the "trusted16wRst" run
 		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
-		Given I perform a 16 processor MPAS "ocean_model_trusted" run with restart in "trusted16"
+		Given I perform a 16 processor MPAS "ocean_model_trusted" run with restart in "trusted16wRst"
 		Then I add the prognostic fields to be compared
 		Then I add the globalStats fields to be compared
 		Then I compute RMSes of all of my fields

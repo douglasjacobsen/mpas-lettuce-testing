@@ -2,8 +2,8 @@
 # To turn these on use any of: "1", "yes", "true", and "on"
 # To turn these off simply comment out the line OR use any of: "0", "no", "false", and "off"
 # Values here are case insensitive but there should be no whitespace after the =
-clone=YES
-build=YES
+clone=NO
+build=NO
 run=YES
 
 [building]

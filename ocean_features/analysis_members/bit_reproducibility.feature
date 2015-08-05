@@ -58,7 +58,7 @@ Feature: Analysis Members Bit Reproducilibity
 		When I configure the "testing2" run to have run_duration "'0000_00:00:30'"
 		When I configure the "trusted16" run to have run_duration "'0000_00:00:30'"
 		When I add globalStats to the "testing2" run
-		When I add globalStats to the "testing16" run
+		When I add globalStats to the "trusted16" run
 		Given I perform a 2 processor MPAS "ocean_model_testing" run in "testing2"
 		Given I perform a 16 processor MPAS "ocean_model_trusted" run in "trusted16"
 		Then I add the prognostic fields to be compared
