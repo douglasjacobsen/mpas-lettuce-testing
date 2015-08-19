@@ -61,7 +61,7 @@ Feature: Variable resolution mesh solutions
 		When I set "run_with_restart" namelist group "time_management", option "config_stop_time" to "'0002-01-01_00:00:00'"
 		When I set "output_interval" to "0001-00-00_00:00:00" in the immutable_stream named "restart" in the "run_with_restart" stream file'
 		When I set "output_interval" to "0001-00-00_00:00:00" in the stream named "output" in the "run_with_restart" stream file'
-		When I perform a 4 processor MPAS "landice_model_testing" run in "run_with_restart"
+		When I perform a 4 processor MPAS "landice_model_testing" run with restart in "run_with_restart"
 
 		When I compute the RMS of "thickness"
 		Then I see "thickness" RMS of 0
