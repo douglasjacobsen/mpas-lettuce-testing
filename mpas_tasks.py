@@ -228,7 +228,7 @@ def run_mpas_without_restart(step, procs, executable, run_name):
 		arg6 = "-s"
 		arg7 = "%s"%world.streams
 		try:
-			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # call will throw an error if return code is not 0.
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -240,7 +240,7 @@ def run_mpas_without_restart(step, procs, executable, run_name):
 		arg1 = outfile
 		arg2 = "%sprocs.output.nc"%procs
 		try:
-			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
+			subprocess.call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # call will throw an error if return code is not 0.
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -298,7 +298,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 
 		# Perform the cold start to get half way through the standard run
 		try:
-			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -325,7 +325,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 
 		# Run the restarted run to get to the end of the standard run
 		try:
-			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
@@ -333,7 +333,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		# Keep a copy of the completed restart run
 		try:
 			restart_output_file = "%sprocs.restarted.output.nc"%procs
-			subprocess.check_call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
+			subprocess.call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
 		except:
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
