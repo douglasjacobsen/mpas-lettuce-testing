@@ -108,6 +108,22 @@ def setup_config(feature):
 
 		print ' '
 
+		# Clone the namelist generation script repo
+		if world.clone:
+			if not os.path.exists("%s/nml_gen/generate_namelist.py"%(world.builds_path)):
+				os.chdir("%s"%(world.builds_path))
+				NML_GEN_URL='git@github.com:douglasjacobsen/mpas-namelist-generator'
+				subprocess.check_call(['git', 'clone', NML_GEN_URL, 'nml_gen'], stdout=world.dev_null, stderr=world.dev_null)  # this version checks out a detached head
+			else:
+				os.chdir("%s/nml_gen"%(world.builds_path))
+				try:
+					subprocess.check_call(['git', 'pull', '--ff-only', 'origin', 'master'], stdout=world.dev_null, stderr=world.dev_null)
+				except:
+					print "\n\nError updating namelist generation. Please do it manually...\n\n"
+					quit(1)
+
+		world.namelist_generator = "%s/nml_gen/generate_namelist.py"%(world.builds_path)
+
 		# Setup both "trusted" and "testing" code directories.  This loop ensures they are setup identically.
 		for testtype in ('trusted', 'testing'):
 			need_to_build = False

@@ -106,10 +106,10 @@ def set_namelist_option(groupOwningOption, optionToChange, valueToSet):#{{{
 	foundRecord = False
 	foundOption = False
 	for record, opts in world.namelist_dict.items():
-		if record.find(groupOwningOption) >= 0:
+		if record.strip() == groupOwningOption:
 			foundRecord = True
 			for opt, val in opts.items():
-				if opt.find(optionToChange) >= 0:
+				if opt.strip() == optionToChange:
 					foundOption = True
 					val[0] = valueToSet
 
@@ -230,29 +230,31 @@ def run_mpas_without_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call([command, arg1, arg2, arg3, arg4, arg5, arg6, arg7], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+
 		if os.path.exists('output.nc'):
 			outfile = 'output.nc'
 		else:
 			outfile = "output.0000-01-01_00.00.00.nc"
+
 		command = "mv"
 		arg1 = outfile
 		arg2 = "%sprocs.output.nc"%procs
+
 		try:
 			subprocess.check_call([command, arg1, arg2], stdout=world.dev_null, stderr=world.dev_null)  # check_call will throw an error if return code is not 0.
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
+
 		if world.num_runs == 0:
 			world.num_runs = 1
 			world.run1 = "%s/%s"%(rundir, arg2)
 			world.run1dir = rundir
-			try:
-				del world.rms_values
-				world.rms_values = defaultdict(list)
-			except:
-				world.rms_values = defaultdict(list)
+			flush_field_list(step)
 		elif world.num_runs == 1:
 			world.num_runs = 2
 			world.run2 = "%s/%s"%(rundir, arg2)
@@ -300,6 +302,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 		# No need to keep/copy output, just continue on below
@@ -327,6 +330,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		try:
 			subprocess.check_call(["mpirun", "-n", "%s"%procs, "./%s"%executable, "-n", "%s"%world.namelist, "-s", "%s"%world.streams], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
@@ -335,6 +339,7 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 			restart_output_file = "%sprocs.restarted.output.nc"%procs
 			subprocess.check_call(["mv", "output.nc", restart_output_file], stdout=world.dev_null, stderr=world.dev_null)
 		except:
+			print "Error in directory: %s\n"%(rundir)
 			os.chdir(world.base_dir)  # return to base_dir before err'ing.
 			raise
 
@@ -343,11 +348,8 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 			world.num_runs = 1
 			world.run1 = "%s/%s"%(rundir,restart_output_file)
 			world.run1dir = rundir
-			try:
-				del world.rms_values
-				world.rms_values = defaultdict(list)
-			except:
-				world.rms_values = defaultdict(list)
+			flush_field_list(step)
+
 		elif world.num_runs == 1:
 			world.num_runs = 2
 			world.run2 = "%s/%s"%(rundir,restart_output_file)
@@ -355,30 +357,97 @@ def run_mpas_with_restart(step, procs, executable, run_name):
 		os.chdir(world.base_dir)
 #}}}
 
+
+@step('I flush my list of fields')#{{{
+def flush_field_list(step):
+	try:
+		del world.rms_values
+		world.rms_values = defaultdict(list)
+	except:
+		world.rms_values = defaultdict(list)
+
+	try:
+		del world.rms_thresholds
+		world.rms_thresholds = defaultdict(list)
+	except:
+		world.rms_thresholds = defaultdict(list)
+#}}}
+
+@step('I compute RMSes of all of my fields')#{{{
+def rms_all_fields(step):
+	if world.run:
+		if world.num_runs == 2:
+			for key in world.rms_thresholds:
+				compute_rms(step, key)
+		else:
+			print 'Less than two runs. Skipping RMS computation.'
+#}}}
+
+@step('I verify my RMSes are within my thresholds')#{{{
+def compare_rmses(step):
+	if world.run:
+		if world.num_runs == 2:
+			for key in world.rms_values:
+				threshold = world.rms_thresholds[key][0]
+				if not world.rms_values[key][0] <= threshold:
+					print "\n***************************************************"
+					print "Failed on field: %s"%key
+					print "    Threshold was: %e"%threshold
+					print "    RMS was: %e"%world.rms_values[key][0]
+					print "***************************************************\n"
+					assert(world.rms_values[key][0] <= threshold)
+		else:
+			print 'Less than two runs. Skipping RMS computation.'
+#}}}
+
 @step('I compute the RMS of "([^"]*)"')#{{{
 def compute_rms(step, variable):
 	if ( world.run == True ):
 		if world.num_runs == 2:
+#			print "\nOn field %s\n"%(variable)
 			f1 = NetCDFFile("%s"%(world.run1),'r')
 			f2 = NetCDFFile("%s"%(world.run2),'r')
 			if len(f1.dimensions['Time']) == 1:
 				timeindex = 0
 			else:
 				timeindex = -1
-			if len(f1.variables["%s"%variable].shape) == 3:
+			if len(f1.variables["%s"%variable].shape) == 5:
+				field1 = f1.variables["%s"%variable][timeindex,:,:,:,:]
+				field2 = f2.variables["%s"%variable][timeindex,:,:,:,:]
+			elif len(f1.variables["%s"%variable].shape) == 4:
+				field1 = f1.variables["%s"%variable][timeindex,:,:,:]
+				field2 = f2.variables["%s"%variable][timeindex,:,:,:]
+			elif len(f1.variables["%s"%variable].shape) == 3:
 				field1 = f1.variables["%s"%variable][timeindex,:,:]
 				field2 = f2.variables["%s"%variable][timeindex,:,:]
 			elif len(f1.variables["%s"%variable].shape) == 2:
 				field1 = f1.variables["%s"%variable][timeindex,:]
 				field2 = f2.variables["%s"%variable][timeindex,:]
+			elif len(f1.variables["%s"%variable].shape) == 1:
+				field1 = f1.variables["%s"%variable][timeindex]
+				field2 = f2.variables["%s"%variable][timeindex]
+			elif len(f1.variables["%s"%variable].shape) == 0:
+				field1 = f1.variables["%s"%variable]
+				field2 = f2.variables["%s"%variable]
 			else:
 				assert False, "Unexpected number of dimensions in output file."
 
-			field1 = field1 - field2
-			field1 = field1 * field1
-			rms = sum(field1)
-			rms = rms / sum(field1.shape[:])
-			rms = math.sqrt(rms)
+			if len(f1.variables["%s"%variable].shape) > 1:
+				field1 = field1 - field2
+				field1 = field1 * field1
+				rms = sum(field1)
+				rms = rms / sum(field1.shape[:])
+				rms = math.sqrt(rms)
+			else:
+#				print "   Values are: %e and %e"%(field1, field2)
+				rms = field1 - field2
+#				print "   First RMS is: %e"%(rms)
+				norm_value = max(field1, field2)
+				if norm_value == 0.0:
+					norm_value = 1.0
+				rms = rms / norm_value
+#				print "   Second RMS is: %e"%(rms)
+
 			world.rms_values[variable].append(rms)
 			f1.close()
 			f2.close()
